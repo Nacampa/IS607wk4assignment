@@ -1,0 +1,290 @@
+Title
+========================================================
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring web pages (click the **Help** toolbar button for more details on using R Markdown).
+
+When you click the **Knit HTML** button a web page will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+# IS607 Assignment 4
+# Neil Acampa
+
+#Download the Movies dataset from http://had.co.nz/data/movies/. 
+#Your job is to look at the data, and answer the question, 
+#"Which year were the best popular movies made?” 
+#This question as worded allows for various interpretations—make (and document!) your reasonable 
+#assumptions about “best” and “popular” and include the R code that you use to support 
+#your argument. 
+
+#Describe your algorithm for deciding how to compare “best popular” movies between years. 
+#This can be included in R comments if you’re not producing an R Markdown file.
+#Provide R code that supports your conclusions.
+#Use at least one visualization in support of your conclusion from the ggplot2 package.
+#Use at least one function in support of your conclusion from the plyr package
+#Deliver your code, document, and results in R Markdown.
+
+
+movies <- read.table("C:/Users/nacampa/Documents/moviesis607/movies.tab", sep="\t", header=TRUE, quote="", comment="")
+head(movies)
+
+library(plyr)
+require(plyr)
+install.packages("ggplot2")
+library(ggplot2)
+
+
+# Which year were the best popular movies made
+# Various intepretations about best and popular
+# The best would be found with the highest rating
+# From the web site: The rating is a weighted avg using statistical methods.
+# Averages are computed for males, females, age categroies, US users and non US users
+# The most popular would be the one receiving the most votes 
+
+# Two approaches
+# Approach 1:
+# Best/Popular: The total number of votes is a strong indicator of popularity
+#               The rating is a strong indicator of the best movie
+
+#               Which year were the best/popular movies made?
+#               One method would be to total by year (the votes and Rating) and divide by the number of movies reviewed.
+#               This gives the average popular and average best.
+#               The year that has highest on both would be the best/popular year.
+#              
+#               The first pass will examine all movies to find the best/popular
+
+#               On the second pass, we can find and set a threshold on min/max number of movies per year to test
+#               If we have a year with 1 movie and it got a 10 it would qualify fo the best
+#               Example: (1893 with a rating of 7). 
+#               if we have a year with thousands of movies (Current industry produces many more movies
+#               and alot of very poor ones, our averages would be thrown off.
+
+#               We can limit the number we examine.
+#               For example the top 20 or use the Zstatistic.
+#                 
+#               The vector: totmoviesyear stores the total number of movies reviewed per year
+#               if we get the mean and then 1 standard deviations from mean 
+#               Zstatistic = Mean +/- 1(std/sqrt(n))
+#               We can get a better idea of how to set the min/max number of movies that
+#               qualify for the test.
+#               We may want to run using by setting the min/max at 1 standard deviation from the mean
+#
+#               On the second pass we use the min and max
+#               We may want to only include years that have at least the minimunm number and less than or 
+#               equal to the max to evaluate
+#
+#               Note: Pass 1 and 2 are in place. 
+
+#               For the Best value on the third pass
+#                 We can sort by descending rating and tally until we hit our max threshold of movies
+#                 and include only those calculating the average
+
+#               For the most Popular on the third pass
+#                We can sort by desceding votes and tally until we hit the max threshold of movies
+#                 and include only those in calculalatiing the mean
+
+# The database should be sorted by year. Then total the number of movies, the number of
+# votes and rating. Find the mean and save.
+
+
+# Provide r code, visual plot and plr function
+
+
+ 
+
+
+
+# Approach 1 - 
+
+df <- data.frame()
+ 
+yearv           <- vector()
+totalratingyear <- vector()
+totalvotesyear  <- vector()
+totalmoviesyear <- vector()
+
+
+peryeartotal     <- 0
+votetotal        <- 0
+ratingtotal      <- 0
+
+minyear          <- 0
+maxyear          <- 0
+
+
+movies   <- movies[order(movies$year),] 
+n        <- nrow(movies)
+oldyear  <- movies$year[1]
+indx     <- 1
+for (i in 1:n) {
+  if (oldyear != movies$year[i]) {
+     yearv[indx]           <- oldyear
+     totalratingyear[indx] <- ratingtotal
+     totalvotesyear[indx]  <- votetotal
+     totalmoviesyear[indx] <- peryeartotal
+     oldyear               <- movies$year[i]
+     ratingtotal  = 0
+     votetotal    = 0
+     peryeartotal = 0
+     indx         = indx + 1
+   }
+   ratingtotal = ratingtotal   + movies$rating[i]
+   votetotal   = votetotal     + movies$votes[i]
+   peryeartotal = peryeartotal + 1
+}
+# Update last year
+  yearv[indx]           <- oldyear
+  totalratingyear[indx] <- ratingtotal
+  totalvotesyear[indx]  <- votetotal
+  totalmoviesyear[indx] <- peryeartotal
+ 
+
+(df<- data.frame(yearv,totalratingyear,totalvotesyear,totalmoviesyear))
+
+avgratingyear <- vector()
+avgvotesyear  <- vector()
+years         <- vector()
+
+
+n <- nrow(df)
+for (i in 1:n) {
+  if (df[i,4] != 0) {
+    avgratingyear[i]    <- (df[i,2] / df[i,4])
+    avgvotesyear[i] <- (df[i,3] / df[i,4])
+    years <- df[i,1]
+  }
+}
+
+(dfavg <- data.frame(yearv, avgratingyear, avgvotesyear))
+
+minyear <- min(yearv)
+maxyear <- max(yearv)
+
+# Highest ratings year = 1928 =  7.170642
+sort(dfavg[,2])
+
+# Most Votes year (Most Popular year) = 1999  = 1364.96990
+
+(maxvotes =  max(dfavg[,3]))
+(maxrating = max(dfavg[,2]))
+
+ratingtext = paste("Average Movie Rating by Year\n","Top Rating (Best): ", round(maxrating,2),sep = "")
+
+votingtext = paste("Average Movie Votes by Year\n","Top Votes (Most Popular)": ",round(maxvotes,2), sep = "")
+
+ 
+
+ggplot(dfavg, aes(y = dfavg[,2], x = dfavg[,1])) + geom_line() + xlab(xratingtext) + ylab("Avergage Rating per Year") + ggtitle(ratingtext)
+ggplot(dfavg, aes(y = dfavg[,3], x = dfavg[,1])) + geom_line() + xlab(xvotetext) + ylab("Avergage Votes per Year") + ggtitle(votingtext)
+  
+
+ 
+# Approach 2 -  Vector totalmoviesyear (df[,4] stores the total number of movies reviewed per year
+#               if we get the mean and then 1 standard deviations from mean 
+#               Zstatistic = Mean +/- 1(std/sqrt(cnt))
+#               Limit totalnumber of movies per year <= zstathigh 
+#               (Note1: Top years for best and most popular did not change)
+#              
+# We can use plyr to do this
+
+  mean    <- mean(df[,4])
+  std     <- sd(df[,4])
+  cnt     <- length(df[,4])
+  sqrtcnt <- sqrt(cnt)
+  (zstathigh = mean + 1*(std/sqrtcnt))
+  (zstatlow = mean  - 1*(std/sqrtcnt))
+
+  
+
+# Do with plyr - Not yet 
+  #result <- ddply(df, df[,4], mutate, m = mean(df[,4]), std = sd(df[,4]), s = nrow(df[,4], z = m + 1.96*(std/sqrt(s)))
+
+df <- data.frame()
+yearv           <- vector()
+totalratingyear <- vector()
+totalvotesyear  <- vector()
+totalmoviesyear <- vector()
+
+
+peryeartotal     <- 0
+votetotal        <- 0
+ratingtotal      <- 0
+
+
+movies   <- movies[order(movies$year),] 
+n        <- nrow(movies)
+oldyear  <- movies$year[1]
+indx     <- 1
+mintest  =  0
+for (i in 1:n) {
+  if (oldyear != movies$year[i]) {
+     yearv[indx]           <- oldyear
+     totalratingyear[indx] <- ratingtotal
+     totalvotesyear[indx]  <- votetotal
+     totalmoviesyear[indx] <- peryeartotal
+     oldyear               <- movies$year[i]
+     ratingtotal  = 0
+     votetotal    = 0
+     peryeartotal = 0
+     mintest      = 0
+     indx         = indx + 1
+   }
+   mintest = mintest + 1
+   peryeartotal = peryeartotal + 1
+   #if ((mintest >= zstatlow) && (mintest <= zstathigh)) {
+    if (peryeartotal <= zstathigh) {
+     # Limit to a 2 statard deviations above mean
+     ratingtotal = ratingtotal   + movies$rating[i]
+     votetotal   = votetotal     + movies$votes[i]
+    }
+}
+# Update last year
+  yearv[indx]           <- oldyear
+  totalratingyear[indx] <- ratingtotal
+  totalvotesyear[indx]  <- votetotal
+  totalmoviesyear[indx] <- peryeartotal
+ 
+
+(df<- data.frame(yearv,totalratingyear,totalvotesyear,totalmoviesyear))
+
+avgratingyear <- vector()
+avgvotesyear  <- vector()
+years         <- vector()
+
+
+n <- nrow(df)
+for (i in 1:n) {
+  if (df[i,4] != 0) {
+    avgratingyear[i]    <- (df[i,2] / df[i,4])
+    avgvotesyear[i] <- (df[i,3] / df[i,4])
+    years <- df[i,1]
+  }
+}
+
+(dfavg1 <- data.frame(yearv, avgratingyear, avgvotesyear))
+
+minyear <- min(yearv)
+maxyear <- max(yearv)
+xratingtext    = paste("Years rated from",minyear,"to", maxyear)
+xvotetext    = paste("Years rated from",minyear,"to", maxyear)
+
+(maxvotes =  max(dfavg1[,3]))
+(maxrating = max(dfavg1[,2]))
+
+
+ratingtext = paste("Average Movie Rating by Year\n"," Total movies rated less than or equal to ", round(zstathigh,2), "\nTop Rating (Best): ", round(maxrating,2),sep = "")
+
+votingtext = paste("Average Movie Votes by Year\n"," Total movies voted on less than or equal to ", round(zstathigh,2),"\nTop Votes (Most Popular): ",round(maxvotes,2), sep = "")
+
+
+ggplot(dfavg1, aes(y = dfavg1[,2], x = dfavg1[,1])) + geom_line() + xlab(xratingtext) + ylab("Avergage Rating per Year") + ggtitle(ratingtext)
+ggplot(dfavg1, aes(y = dfavg1[,3], x = dfavg1[,1])) + geom_line() + xlab(xvotetext) + ylab("Avergage Votes per Year") + ggtitle(votingtext)
+  
+```{r}
+
+```
+
+You can also embed plots, for example:
+
+```{r fig.width=7, fig.height=6}
+plot(cars)
+```
+
